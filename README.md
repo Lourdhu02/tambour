@@ -22,7 +22,7 @@ python -m tambour train --model tambour-b --data /path/to/dataset --device auto
 | Many domains (4+) | One shared backbone + **per-domain adapters** (FiLM, identity-init) + **domain-balanced sampling**. |
 | Millions of images | **WebDataset tar shards** (sequential I/O), **DDP + bf16**, group-split by `meter_id`. |
 | Trust | **Calibrated confidence + abstain** — route low-confidence reads to humans for ≥99.5% accepted-read precision. |
-| Deploy | ONNX export (fixed width, dynamic batch) → TensorRT/OpenVINO; CTC decode outside the graph. |
+| Deploy | ONNX export (fixed width, dynamic batch) → TensorRT/OpenVINO; **INT8/FP16 quantization** + throughput `bench`; CTC decode outside the graph. |
 
 ## Model variants
 
@@ -55,6 +55,7 @@ python -m tambour predict  --ckpt best.pth --source img_or_dir --tau 0.9 --tta
 python -m tambour calibrate --ckpt best.pth --data DATA --precision 0.995   # -> T, abstain tau
 python -m tambour mine     --ckpt best.pth --source unlabeled/ --out to_relabel.txt
 python -m tambour export   --ckpt best.pth --output tambour-b.onnx
+python -m tambour bench    --ckpt best.pth --onnx tambour-b.onnx            # fp32/int8/onnx throughput
 python -m tambour shards   --data DATA --out shards/ --resize-h 48          # scale: pack to tar
 python -m tambour sweep                                                     # all 4 variants once
 python -m tambour agents   --model tambour-b --data DATA                    # health/latency/leakage
