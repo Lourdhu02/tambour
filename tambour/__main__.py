@@ -15,6 +15,14 @@ def _train(a):
     fit(a.model, a.data, cfg, project=a.project, name=a.name)
 
 
+def _distill(a):
+    from .distill import distill_fit
+    cfg = load_config(a.config, epochs=a.epochs, batch=a.batch, lr=a.lr,
+                      device=a.device, workers=a.workers)
+    distill_fit(a.teacher, a.student, a.data, cfg, project=a.project, name=a.name,
+                alpha=a.alpha, temperature=a.temperature)
+
+
 def _val(a):
     import torch.nn as nn
     from .data import build_loaders
@@ -166,6 +174,16 @@ def main():
     t.add_argument("--project", default="runs"); t.add_argument("--name", default="exp")
     t.add_argument("--aug-loss", action="store_true", dest="aug_loss")
     t.add_argument("--sgm", type=float, default=None)
+
+    ds = sub.add_parser("distill"); ds.set_defaults(fn=_distill)
+    ds.add_argument("--teacher", required=True, help="teacher .pth checkpoint")
+    ds.add_argument("--student", default="tambour-n", choices=list(VARIANTS))
+    ds.add_argument("--data", required=True); ds.add_argument("--config", default=None)
+    ds.add_argument("--epochs", type=int); ds.add_argument("--batch", type=int)
+    ds.add_argument("--lr", type=float); ds.add_argument("--device"); ds.add_argument("--workers", type=int)
+    ds.add_argument("--alpha", type=float, default=0.5)
+    ds.add_argument("--temperature", type=float, default=2.0)
+    ds.add_argument("--project", default="runs"); ds.add_argument("--name", default="distill")
 
     v = sub.add_parser("val"); v.set_defaults(fn=_val)
     v.add_argument("--ckpt", required=True); v.add_argument("--data", required=True)
