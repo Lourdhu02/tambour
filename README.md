@@ -50,6 +50,7 @@ before the first `-` and is used to keep all photos of one meter in a single spl
 
 ```bash
 python -m tambour train    --model tambour-b --data DATA --device auto --aug-loss
+python -m tambour distill  --teacher tambour-l.pth --student tambour-n --data DATA   # KD: big -> small
 python -m tambour val      --ckpt runs/exp/best.pth --data DATA
 python -m tambour predict  --ckpt best.pth --source img_or_dir --tau 0.9 --tta
 python -m tambour calibrate --ckpt best.pth --data DATA --precision 0.995   # -> T, abstain tau
