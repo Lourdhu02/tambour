@@ -118,7 +118,7 @@ def _sweep(a):
             il = torch.full((4,), lp.size(1), dtype=torch.long, device=dev)
             loss = crit(lp.permute(1, 0, 2), tgt, il, lens)
             opt.zero_grad(); loss.backward(); opt.step()
-            losses.append(float(loss))
+            losses.append(loss.item())
         with tempfile.TemporaryDirectory() as d:
             ok = bool(export_onnx(net, h, w, f"{d}/{v}.onnx", check=False))
         n = sum(p.numel() for p in net.parameters())
