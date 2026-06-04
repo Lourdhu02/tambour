@@ -11,7 +11,8 @@ from .config import VARIANTS, load_config
 def _train(a):
     from .engine import fit
     cfg = load_config(a.config, epochs=a.epochs, batch=a.batch, lr=a.lr, device=a.device,
-                      workers=a.workers, aug_loss=a.aug_loss or None, sgm_weight=a.sgm or None)
+                      workers=a.workers, img_h=a.img_h, img_w=a.img_w,
+                      aug_loss=a.aug_loss or None, sgm_weight=a.sgm or None)
     fit(a.model, a.data, cfg, project=a.project, name=a.name)
 
 
@@ -163,6 +164,7 @@ def main():
     t.add_argument("--data", required=True); t.add_argument("--config", default=None)
     t.add_argument("--epochs", type=int); t.add_argument("--batch", type=int)
     t.add_argument("--lr", type=float); t.add_argument("--device"); t.add_argument("--workers", type=int)
+    t.add_argument("--img-h", type=int, dest="img_h"); t.add_argument("--img-w", type=int, dest="img_w")
     t.add_argument("--project", default="runs"); t.add_argument("--name", default="exp")
     t.add_argument("--aug-loss", action="store_true", dest="aug_loss")
     t.add_argument("--sgm", type=float, default=None)

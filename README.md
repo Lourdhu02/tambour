@@ -34,7 +34,7 @@ python -m tambour train --model tambour-b --data /path/to/dataset --device auto
 | `tambour-l` | ~20M | top accuracy / teacher |
 
 Charset `0123456789.` → 12 classes (incl. CTC blank). Input letterboxed (MSR,
-aspect-preserving) to 3×48×320.
+aspect-preserving) to 3×48×192 (≈ the 4:1 digit-strip aspect; tune with `--img-w`).
 
 ## Dataset format
 

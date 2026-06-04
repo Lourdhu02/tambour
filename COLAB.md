@@ -9,8 +9,12 @@
 # 2. verify all 4 variants build / train / export
 !tambour sweep
 
-# 3. train  (use %cd above, NOT !cd — see notes)
-!tambour train --model tambour-s --data /content/analog_data --device cuda --batch 32
+# 3a. train on the FULL 2-7M-image set — just use the defaults
+!tambour train --model tambour-b --data /content/analog_data --device cuda
+
+# 3b. ...or on the tiny ~800-image sample, train long with a small batch
+!tambour train --model tambour-b --data /content/analog_data --device cuda \
+    --batch 16 --epochs 300 --img-w 192
 ```
 
 ## Gotchas
@@ -21,10 +25,12 @@
   instead of the package. `%cd` (a magic) persists. `pip install -e .` sidesteps it
   entirely by giving you the `tambour` command on PATH.
 
-- **Small dataset → smaller `--batch`.** With only a few hundred images, the default
-  `--batch 128` is ~5 optimizer steps per epoch and the model barely moves. Use
-  `--batch 32` (or less) for quick experiments. For the full 2-7M-image set, keep
-  128+ and raise `workers` in the config.
+- **From-scratch CTC is data-hungry — expect slow early progress.** `exact` legitimately
+  sits at 0 for many epochs while the model first learns to emit the right *number* of
+  digits; watch `char` climb first, then `exact` follows. On the **full 2-7M set** one
+  epoch is tens of thousands of steps, so it converges fast on defaults. On a **few-hundred-
+  image sample** it is heavily undertrained: use `--batch 16 --epochs 300 --img-w 192` and
+  give it time. Reported `val`/`test` numbers are the **EMA** model (what you deploy).
 
 - **fp16 GPUs (T4/V100) are fine.** They have no bf16, so AMP runs in fp16; the
   recognizer forces the CTC log-softmax to fp32 internally, so training stays stable.
