@@ -154,6 +154,21 @@ def _info(a):
           f"| output {out.shape[1]}x{out.shape[2]}")
 
 
+def _bench(a):
+    from .deploy import benchmark, onnx_throughput, quantize_dynamic_int8
+    from .engine import resolve_device
+    from .infer import load_checkpoint
+    dev = resolve_device(a.device)
+    net, ckpt = load_checkpoint(a.ckpt, dev)
+    h, w = ckpt["img_h"], ckpt["img_w"]
+    print(f"  fp32 {dev}:  {benchmark(net, h, w, dev, a.batch):.1f} img/s")
+    if dev.type == "cuda":
+        print(f"  fp16 cuda: {benchmark(net, h, w, dev, a.batch, fp16=True):.1f} img/s")
+    print(f"  int8 cpu:  {benchmark(quantize_dynamic_int8(net), h, w, 'cpu', a.batch):.1f} img/s")
+    if a.onnx:
+        print(f"  onnx cpu:  {onnx_throughput(a.onnx, h, w, a.batch):.1f} img/s")
+
+
 def main():
     p = argparse.ArgumentParser(prog="tambour", description=f"Tambour OCR v{__version__} (analog meter counters)")
     sub = p.add_subparsers(dest="cmd")
@@ -202,6 +217,10 @@ def main():
 
     inf = sub.add_parser("info"); inf.set_defaults(fn=_info)
     inf.add_argument("--model", default="tambour-b", choices=list(VARIANTS))
+
+    bn = sub.add_parser("bench"); bn.set_defaults(fn=_bench)
+    bn.add_argument("--ckpt", required=True); bn.add_argument("--device")
+    bn.add_argument("--batch", type=int, default=8); bn.add_argument("--onnx", default=None)
 
     args = p.parse_args()
     if not args.cmd:
