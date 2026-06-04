@@ -151,7 +151,7 @@ def train_epoch(net, loader, optimizer, scaler, criterion, device, cfg,
                 if center_w > 0 and center is not None:
                     loss = loss + center_w * center(feats.float(), log_probs)
                 if sgm_w > 0 and core.sgm_head is not None:
-                    sgm_lp, sgm_in = ctc_loss_inputs(core.sgm_head(feats).log_softmax(2), device)
+                    sgm_lp, sgm_in = ctc_loss_inputs(core.sgm_head(feats).float().log_softmax(2), device)
                     loss = loss + sgm_w * criterion(sgm_lp, targets, sgm_in, lengths)
 
         optimizer.zero_grad(set_to_none=True)
@@ -249,10 +249,14 @@ def fit(variant: str, data_dir: str, cfg: Dict, project="runs", name="exp") -> s
         print(f"  epoch {epoch:>3}/{cfg['epochs']} | loss {tr:.4f} | val_loss {val['loss']:.4f} "
               f"| exact {val['exact']:.4f} | char {val['char_acc']:.4f}{wd}")
         _save(run_dir / "last.pth", net, ema, variant, cfg, meta, val, epoch)
-        if val["exact"] > best or not best_path.exists():
+        # Rank by exact-match, breaking ties on char accuracy, so best.pth tracks a
+        # genuinely improving model (and early-stop doesn't fire) before the first
+        # exact match appears.
+        score = val["exact"] + 0.01 * val["char_acc"]
+        if score > best or not best_path.exists():
             _save(best_path, net, ema, variant, cfg, meta, val, epoch)
-        if val["exact"] > best:
-            best, wait = val["exact"], 0
+        if score > best:
+            best, wait = score, 0
         else:
             wait += 1
             if wait >= cfg.get("patience", 20):

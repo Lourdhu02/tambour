@@ -185,7 +185,10 @@ class TambourNet(nn.Module):
         feats = self.forward_backbone(x)
         if self.adapter is not None and domain_ids is not None:
             feats = self.adapter(feats, domain_ids)
-        return self.head(feats).log_softmax(2)
+        # Force fp32 for the log-softmax: under fp16/bf16 AMP an fp16 log-softmax
+        # destroys CTC precision and collapses training (loss stalls, exact stays 0).
+        # No-op cost when already fp32 (CPU / non-AMP).
+        return self.head(feats).float().log_softmax(2)
 
     def load_pretrained(self, path: str):
         ckpt = torch.load(path, map_location="cpu", weights_only=False)
