@@ -20,22 +20,23 @@ MODELS: Dict[str, Dict[str, Any]] = {
 VARIANTS = tuple(MODELS.keys())
 
 DEFAULTS: Dict[str, Any] = dict(
-    # input (MSR: aspect-preserving pad into this canvas)
+    # input (MSR: aspect-preserving pad into this canvas). 4:1 matches the digit-strip
+    # aspect; a wider canvas wastes timesteps on blank padding and worsens CTC blank-bias.
     img_h=48,
-    img_w=320,
+    img_w=192,
     # optimization
     epochs=80,
     batch=128,
     lr=1e-3,
     min_lr=1e-6,
-    weight_decay=0.05,
-    warmup_epochs=3,
+    weight_decay=0.01,   # 0.05 over-regularizes a from-scratch CTC model early on
+    warmup_epochs=5,
     patience=20,
     grad_clip=5.0,
     amp=True,            # bf16/fp16 autocast on CUDA only
     workers=8,
     seed=42,
-    ema_decay=0.9995,
+    ema_decay=0.999,     # validation/inference use EMA weights (smooth; CTC live weights are peaky)
     scheduler="cosine",
     save_every=10,
     # data / domains
