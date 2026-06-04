@@ -116,6 +116,15 @@ def test_model_all_variants():
         assert net(x).shape[2] == NUM_CLASSES  # domain_ids=None skips adapter
 
 
+def test_amp_output_is_fp32():
+    """Under AMP the log-softmax must stay fp32, or CTC collapses (fp16 GPU bug)."""
+    net = build_model("tambour-n", NUM_CLASSES).eval()
+    x = torch.randn(2, 3, H, W)
+    with torch.autocast("cpu", dtype=torch.bfloat16):
+        out = net(x)
+    assert out.dtype == torch.float32, out.dtype
+
+
 def test_losses_backward():
     net = build_model("tambour-n", NUM_CLASSES)
     x = torch.randn(2, 3, H, W)
