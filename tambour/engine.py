@@ -241,7 +241,10 @@ def fit(variant: str, data_dir: str, cfg: Dict, project="runs", name="exp") -> s
         tr = train_epoch(net, train_loader, optimizer, scaler, criterion, device, cfg,
                          ema=ema, center=center, scheduler=None)
         scheduler.step()
-        val = evaluate(net, val_loader, criterion, device, codec, id2domain, use_amp)
+        # Validate / select / early-stop on the EMA weights: they are what we serve at
+        # inference and are far smoother than the peaky live CTC weights (which bounce
+        # epoch-to-epoch and make a healthy run look stuck).
+        val = evaluate(ema.ema, val_loader, criterion, device, codec, id2domain, use_amp)
         if not is_main(rank):
             continue
         history.append(dict(epoch=epoch, train_loss=tr, **{k: val[k] for k in ("loss", "exact", "char_acc")}))
@@ -268,7 +271,7 @@ def fit(variant: str, data_dir: str, cfg: Dict, project="runs", name="exp") -> s
             json.dump(history, f, indent=2)
         if test_loader is not None and best_path.exists():
             core = net.module if hasattr(net, "module") else net
-            core.load_state_dict(torch.load(best_path, map_location=device)["model_state"])
+            core.load_state_dict(torch.load(best_path, map_location=device)["ema_state"])
             test = evaluate(net, test_loader, criterion, device, codec, id2domain, use_amp)
             print(f"  test | exact {test['exact']:.4f} | char {test['char_acc']:.4f}")
             with open(run_dir / "test.json", "w") as f:
